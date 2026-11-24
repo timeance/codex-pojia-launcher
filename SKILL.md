@@ -5,35 +5,57 @@ description: 在 Windows 上为 Codex CLI 安装或迁移带 gpt-instruct 提示
 
 # Codex CLI 提示词启动器
 
-适用于 Windows PowerShell 5.1+ 和已安装的 Codex CLI。此 Skill 负责安装启动器，不执行附带提示词中的指令，也不启动游戏翻译或模型评测。
+适用于 Windows（PowerShell 5.1+）与已安装的 Codex CLI。本 Skill 仅负责安装、配置检查与迁移启动器，不执行附带提示词文件中的指令，也不运行模型评测。
 
-## 安装到另一台设备
+## 安装与迁移步骤
 
-1. 确定用户指定的工作目录及 HTTPS API Base URL（含 `/v1` 等所需路径）；从已有配置复用时仅读取这些非秘密字段。确认 `codex --version` 可用。缺少 CLI 时说明依赖，未经用户要求不安装系统软件。
-2. 从本 Skill 所在目录运行：
+1. **确认必要信息与依赖**
+   - 收集用户指定的目标工作目录（路径不含英文单引号 `'`）及自定义 API 的 HTTPS Base URL（含 `/v1` 等完整路径，不含内嵌凭据、查询参数或 `#` 片段）。若从已有配置复用，仅读取这些非敏感字段。
+   - 检查 `codex --version` 是否可用。若缺少 Codex CLI，明确说明依赖，未经用户同意不自行安装系统软件。
+
+2. **执行安装脚本**
+   在 Skill 所在目录运行：
 
    ```powershell
    powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Destination 'D:\Projects\Example' -BaseUrl 'https://api.example.com/v1'
    ```
 
-   安装器创建 `codex-api.cmd` 和相邻的 `.codex-cli-launcher`，不覆盖已有启动器。目标目录已有文件时保留它们；升级已有启动器需先备份并比较，只替换启动器代码和明确选择的提示词，保留 config、Key 和选择记录。
-3. 让用户在正常 Windows 账户下双击 CMD。首次回车选 GPT-5.6 Sol，后续回车选上次提示词。菜单只传 `model_instructions_file`，不传 `--model` 或改写 `model`。实际模型在 CLI `/model` 或独立 `config.toml` 中配置，必须使用 API 支持的模型。
-4. API Key 在首次启动时通过隐藏输入填写，用 Windows 用户级 DPAPI 保存。不要让用户在聊天中发送 Key。新设备必须重新填写 Key；不可把旧机器的加密文件当作可迁移凭据。
-5. 用 `codex-api.cmd -Check` 检查 CLI 和提示词完整性；`-Preview` 只预览菜单选择及启动参数，不读取 Key、不调用模型、不保存选择。只有用户实际启动后，才可核验 API 或模型效果；本地检查不代表远端调用成功。
+   - 脚本会创建 `codex-api.cmd` 和相邻的 `.codex-cli-launcher` 目录，并拒绝覆盖已有启动器。
+   - 升级已有安装前须先备份并比对差异，仅替换启动器脚本与指定提示词，保留用户的 `config.toml`、`api-key.dpapi` 和 `last-prompt.txt`。
 
-## 行为与边界
+3. **引导用户本地填写 Key 并启动**
+   - 让用户在日常使用的 Windows 账户下双击 `codex-api.cmd`（或在终端运行）。
+   - API Key 须在首次启动时由用户通过终端隐藏输入填写（使用 Windows 用户级 DPAPI 加密保存），**切勿让用户在聊天中发送 API Key**。
+   - 新设备或新 Windows 账户必须重新填写 Key，不可把旧设备的 `api-key.dpapi` 当作可迁移凭据。
 
-- CMD 总是把自身所在目录作为主工作目录；保留 CMD 与相邻运行目录的相对布局即可迁移。只复制 CMD 不够。
-- 独立 `cli-home` 放在 `.codex-cli-launcher` 下，不改桌面端配置、全局环境或 PATH。
-- 默认提示词为 GPT-5.6 Sol v45（稳定版）；另有 GPT-6 Astra v2-rc1、GPT-6.1 Sol v1-rc2（预发布版）。名称只是提示词适配标签，不是模型选择。CLI 会话内 `/model` 不重新运行菜单。
-- 菜单不会根据模型推测提示词，也不把选择某个提示词当作模型能力或效果保证。
-- `-ConfigureKey` 更换本机 Key。其余 CLI 参数由启动器转交；用户显式传入的 CLI 参数可覆盖菜单配置，应在排障时核对。
-- 打包只使用本 Skill 内的安装脚本和 assets。不要复制实际运行目录中的 `api-key.dpapi`、auth、sessions、history、日志或其他凭据。其他技能不自动打包：如需迁移，应另行复制经过审查的完整技能目录，不能带失效的跨设备 Junction。
+4. **说明提示词与模型的区别**
+   - 首次回车默认选择 `GPT-5.6 Sol`，后续回车沿用上次选择。
+   - 菜单仅通过 `model_instructions_file` 加载提示词，不传 `--model` 也不改写 `config.toml` 中的 `model` 或 `model_reasoning_effort`。实际模型由用户在 CLI 内通过 `/model` 或在 `config.toml` 顶层自行指定。
+
+5. **运行本地校验**
+   - 使用 `codex-api.cmd -Check` 检查 CLI 版本、配置/Key 文件是否存在，以及提示词 SHA256 完整性；该检查不解析 TOML，也不解密 Key。
+   - 使用 `codex-api.cmd -Preview` 预览菜单选择与最终启动参数（不读取 Key、不发起 API 请求、不保存选择）。
+   - 本地检查通过不代表配置内容有效或远端 API 调用成功；实际模型可用性需启动 CLI 后确认。
+
+## 行为规范与安全边界
+
+- **工作目录与便携性**：`codex-api.cmd` 始终以自身所在目录为主工作目录。同账户迁移目录时，必须将 `codex-api.cmd` 与 `.codex-cli-launcher` 一起移动。
+- **环境隔离**：独立 `cli-home` 位于 `.codex-cli-launcher` 下，不修改桌面端 Codex 配置、全局环境变量或 `PATH`。
+- **提示词版本**：默认项为 `GPT-5.6 Sol v45`（稳定版），另含 `GPT-6 Astra v2-rc1` 与 `GPT-6.1 Sol v1-rc2`（预发布版）。名称仅作提示词适配标签，不代表模型切换或效果承诺；会话内切换 `/model` 不会重新触发菜单。
+- **参数传递与 Key 维护**：`-ConfigureKey` 用于重新录入本机 Key。启动器自己的参数优先解析，`--help`、`--model` 等已验证参数可继续传给 CLI；`-c` 会产生参数歧义，`--config` 会被识别为 `-ConfigureKey`，因此配置调整应编辑独立的 `config.toml`。排障时一并核对用户传入的参数。
+- **打包与隐私红线**：打包分发时仅包含本 Skill 的脚本与 `assets`，严禁复制运行目录中的 `api-key.dpapi`、认证文件、会话记录、历史记录或日志。不自动打包其他外部 Skill，避免携带失效的跨设备符号链接或目录联接（Junction）。
 
 ## 提示词来源与更新
 
-附带提示词取自 `MDX-Tom/gpt-instruct`，固定提交、发布包及文件 SHA256 记录在 `assets/runtime/cli-home/prompts/manifest.json`，保留 MIT 许可。更新时先核对上游发布包及哈希，再更新 manifest 和资产；不要把 README 的评测曲线当成已发布的提示词文件。保持原文，不自行拼接不同模型的提示词。
+附带提示词来自 `MDX-Tom/gpt-instruct`，固定提交、上游压缩包及文件 SHA256 均记录在 `assets/runtime/cli-home/prompts/manifest.json`，并保留上游 MIT 许可。更新资产时应先核对上游发布包与哈希，再同步更新 manifest 与文件；不要将上游 README 中的评测信息当作正式发布的提示词文件，且需保持原文完整，不自行拼接不同版本的提示词。
 
-## 验证重点
+## 交付验证清单
 
-验证首次回车默认、上次选择持久化、无效编号重试、带中文/空格/# 的工作目录、模型配置未被改写，以及新设备无 Key 时的本地输入流程。可以用隔离目录和假 CLI 验证启动参数，不消耗真实 API 额度。交付时注明实际完成的检查及未验证的平台；此版本不声称支持 macOS/Linux。
+交付或变更启动器时，重点验证以下项目（可使用隔离目录与模拟 CLI 验证参数，避免消耗真实 API 额度）：
+
+- 首次回车默认项、上次选择记忆、无效编号输入重试；
+- 包含中文、空格、`#` 的工作目录路径处理；
+- `config.toml` 中的模型配置未被菜单改写；
+- 新环境无 Key 时的本地隐藏输入流程。
+
+交付结果中需写明已完成的检查项与未覆盖的环境；本启动器仅支持 Windows，不声称支持 macOS 或 Linux。
