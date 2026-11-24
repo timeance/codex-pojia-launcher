@@ -7,7 +7,8 @@
   </picture>
 </p>
 
-为 Windows 版 Codex CLI 提供独立的 API 环境、提示词选择菜单与可随目录移动的启动入口。本仓库同时支持作为 `codex-cli-prompt-launcher` Skill 使用，详见 [SKILL.md](SKILL.md)。
+为 Windows 版 Codex CLI 提供独立的 API 环境、提示词选择菜单与可随目录移动的启动入口。  
+本仓库同时支持作为 `codex-cli-prompt-launcher` Skill 使用，详见 [SKILL.md](SKILL.md)。
 
 > **提示**：启动菜单仅切换 `gpt-instruct` 破甲提示词，不会强制指定或改写推理模型。实际使用的模型仍由 Codex 会话内的 `/model` 命令或 `config.toml` 决定。
 
@@ -145,6 +146,5 @@ requires_openai_auth = false
 
 ## 上游与许可
 
-- 提示词来源：[MDX-Tom/gpt-instruct](https://github.com/MDX-Tom/gpt-instruct)（固定提交 `79b9c1cfde30ca6d70ba8f76e9b23be38e4223a3`）。
-- 完整性校验：原始发布包与提示词文件的 SHA256 记录在 [manifest.json](assets/runtime/cli-home/prompts/manifest.json)。安装与启动时自动校验的是本地提示词文件；上游压缩包哈希供维护者更新资产时核对。
-- 开源协议：本仓库采用 [MIT License](LICENSE)，附带提示词保留 [上游 MIT 许可](assets/runtime/cli-home/prompts/LICENSE.gpt-instruct)。
+- 提示词来源：[MDX-Tom/gpt-instruct](https://github.com/MDX-Tom/gpt-instruct)
+- 开源协议：本仓库采用 [MIT License](LICENSE)
