@@ -1,0 +1,12 @@
+# Machine-local launcher state and credentials
+.codex-cli-launcher/
+**/api-key.dpapi
+**/auth.json
+**/config.toml
+**/last-prompt.txt
+**/sessions/
+**/history.jsonl
+**/logs/
+__pycache__/
+tmp/
+dist/
