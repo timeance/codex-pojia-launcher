@@ -1,67 +1,150 @@
 # Codex 破甲提示词启动器
 
-为 Windows Codex CLI 提供独立 API 配置、提示词选择菜单和可移动的工作目录启动脚本。也可作为 `codex-cli-prompt-launcher` Skill 使用，安装流程见 [SKILL.md](SKILL.md)。
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/readme_banner_dark.png">
+    <img src="assets/brand/readme_banner_light.png" alt="Codex 破甲提示词启动器：独立配置、提示词切换、随目录启动" width="960">
+  </picture>
+</p>
 
-**菜单仅切换 gpt-instruct 破甲提示词配置，不强行指定实际模型。** 实际模型由 Codex 的 `/model` 或独立 `config.toml` 配置决定。
+为 Windows 版 Codex CLI 提供独立的 API 环境、提示词选择菜单与可随目录移动的启动入口。本仓库同时支持作为 `codex-cli-prompt-launcher` Skill 使用，详见 [SKILL.md](SKILL.md)。
+
+> **提示**：启动菜单仅切换 `gpt-instruct` 破甲提示词，不会强制指定或改写推理模型。实际使用的模型仍由 Codex 会话内的 `/model` 命令或 `config.toml` 决定。
 
 ## 提示词菜单
 
-| 选项 | 上游版本 | 状态 |
-| --- | --- | --- |
-| GPT-5.6 Sol | v45 | 稳定版；首次回车默认 |
-| GPT-6 Astra | v2-rc1 | 预发布版 |
-| GPT-6.1 Sol | v1-rc2 | 预发布版 |
+| 编号 | 提示词 | 上游版本 | 说明 |
+| --- | --- | --- | --- |
+| 1 | GPT-5.6 Sol | v45 | 稳定版（首次直接回车默认） |
+| 2 | GPT-6 Astra | v2-rc1 | 预发布版 |
+| 3 | GPT-6.1 Sol | v1-rc2 | 预发布版 |
 
-后续直接回车使用上次选择。提示词通过单次启动的 `model_instructions_file` 参数加载，菜单不改写 `model` 或 `model_reasoning_effort`。会话内切换模型不会重新运行菜单；更换提示词需退出后重新启动。
+- 首次启动直接回车默认选择 `GPT-5.6 Sol`，之后每次启动都会自动记住上次的选择。
+- 提示词在每次启动时通过 `model_instructions_file` 临时传入，不会修改 `model` 或 `model_reasoning_effort`。
+- 会话内使用 `/model` 切换模型不会重新弹出菜单；如需更换提示词，请退出后重新运行启动器。
 
-## 安装
+## 快速开始
 
-需要 Windows、Windows PowerShell 5.1 或以上，以及已安装且可运行 `codex --version` 的 Codex CLI。
+### 环境要求
 
-克隆或下载本仓库，在仓库目录运行（替换工作目录和 API 地址）：
+- Windows 系统，Windows PowerShell 5.1 及以上
+- 已安装 Codex CLI，且终端中可正常运行 `codex --version`
+
+### 1. 安装到工作目录
+
+克隆或下载本仓库后，在仓库根目录执行安装脚本（将路径和 API 地址替换为你的实际配置）：
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Destination 'D:\Projects\MyProject' -BaseUrl 'https://api.example.com/v1'
 ```
 
-安装器创建以下文件，不覆盖已有启动器：
+参数说明：
+
+- `-Destination`：目标工作目录（路径中不能包含英文单引号 `'`）。
+- `-BaseUrl`：自定义 API 的 HTTPS 基础地址（如 `https://api.example.com/v1`，不能包含内嵌账号密码、查询参数或 `#` 片段）。
+
+安装完成后，目标目录会新增以下结构（若目录中已存在启动器，安装脚本会拒绝覆盖以保护现有配置）：
 
 ```text
 MyProject/
-├─ codex-api.cmd
-└─ .codex-cli-launcher/
-   ├─ codex-api.ps1
-   └─ cli-home/
-      ├─ config.toml
-      └─ prompts/
+├── codex-api.cmd                  # 启动入口（双击或终端运行）
+└── .codex-cli-launcher/
+    ├── codex-api.ps1              # 启动脚本
+    └── cli-home/                  # 独立 CODEX_HOME
+        ├── config.toml            # API 与模型配置
+        ├── api-key.dpapi          # 首次填写 Key 后自动生成（本机加密）
+        ├── last-prompt.txt        # 首次启动后自动生成（记忆上次选择）
+        └── prompts/               # 提示词文件与校验清单
 ```
 
-1. 双击目标目录中的 `codex-api.cmd`，或从终端运行它。
-2. 选择提示词。缺少 API Key 时，启动器通过隐藏输入提示填写，并用当前 Windows 用户的 DPAPI 加密保存。
-3. 在 CLI 中通过 `/model` 选择服务端支持的实际模型，或在 `.codex-cli-launcher\cli-home\config.toml` 的顶层单独设置 `model` 和 `model_reasoning_effort`。
+### 2. 首次启动
 
-启动器使用自己的 `CODEX_HOME`，不修改桌面端登录、全局环境变量或 PATH。自定义 API 使用 Responses 协议和环境变量认证，不需要复用桌面端登录令牌。
+1. 双击目标目录中的 `codex-api.cmd`，或在终端中执行 `.\codex-api.cmd`。
+2. 按提示选择要加载的提示词（或直接回车使用默认项）。
+3. 首次运行未检测到 API Key 时，终端会提示以隐藏方式粘贴 API Key，并使用当前 Windows 账户的 DPAPI 加密保存在本机。
+4. 进入 Codex CLI 后，使用 `/model` 选择你的 API 服务商支持的实际模型即可开始使用。
 
-## 更换工作目录与设备
+## 配置说明
 
-CMD 始终将自身所在目录作为主工作目录。把 `codex-api.cmd` 和相邻的 `.codex-cli-launcher` 一起移动即可更换目录；只复制 CMD 不够。
+启动器使用独立的 `CODEX_HOME`（`.codex-cli-launcher\cli-home`），不会修改桌面端 Codex 的登录状态、系统环境变量或 `PATH`。自定义 API 采用 Responses 协议并通过环境变量认证，与官方桌面端登录互不干扰。
 
-另一台 Windows 设备请从本仓库重新安装并在本机填写 API Key。加密 Key 绑定 Windows 用户，不能当作跨设备凭据。仓库和发布源码不包含用户的配置、凭据、会话或其他翻译 Skill；其他 Skill 应另行安装，避免复制指向旧机器的目录链接。
+### config.toml 设置
 
-## 检查与维护
+安装时会自动生成 `.codex-cli-launcher\cli-home\config.toml`，默认内容如下：
+
+```toml
+# 提示词菜单不指定模型；请在此设置 model，或在会话内使用 /model 切换。
+model_provider = "portable_api"
+cli_auth_credentials_store = "ephemeral"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[model_providers.portable_api]
+name = "Custom API"
+base_url = "https://api.example.com/v1"
+env_key = "ZARIBA_CODEX_API_KEY"
+wire_api = "responses"
+requires_openai_auth = false
+```
+
+常用调整项：
+
+- **固定默认模型与推理强度**：在文件顶层（`[model_providers.portable_api]` 之前）添加：
+  ```toml
+  model = "你的服务端模型名"
+  model_reasoning_effort = "high"
+  ```
+- **更换 API 地址**：直接修改 `[model_providers.portable_api]` 下的 `base_url`。
+- **调整审批与沙箱策略**：按需修改顶层的 `approval_policy`（默认 `"on-request"`）和 `sandbox_mode`（默认 `"workspace-write"`）。
+
+### API Key 管理
+
+- Key 加密保存在 `.codex-cli-launcher\cli-home\api-key.dpapi`，启动时临时注入进程环境，结束后恢复原环境。
+- 如需更换 Key，运行 `.\codex-api.cmd -ConfigureKey` 重新输入即可。
+
+## 常用命令
 
 ```powershell
-.\codex-api.cmd -Check         # 检查 CLI、提示词完整性和 Key 文件是否存在
-.\codex-api.cmd -Preview       # 预览菜单和启动参数；不读取 Key、不请求 API、不保存选择
-.\codex-api.cmd -ConfigureKey  # 用隐藏输入重新填写本机 Key
+.\codex-api.cmd                # 正常启动（选提示词并进入 Codex CLI）
+.\codex-api.cmd -Check         # 检查 CLI 版本、配置/Key 文件是否存在，以及提示词完整性
+.\codex-api.cmd -Preview       # 预览菜单选择与最终启动参数（不读 Key、不发请求、不保存选择）
+.\codex-api.cmd -ConfigureKey  # 重新填写并加密保存本机 API Key
 ```
 
-已有安装升级前应先备份，只替换启动器代码和提示词资产，保留 `config.toml`、`api-key.dpapi` 和 `last-prompt.txt`。安装器会拒绝覆盖已有入口或运行目录。
+可附加部分 Codex CLI 参数，例如 `.\codex-api.cmd --help` 或 `.\codex-api.cmd --model 服务端模型名`。启动器自己的参数优先解析：`-c` 会产生参数歧义，`--config` 会被识别为 `-ConfigureKey`。配置调整请直接编辑独立的 `config.toml`，不要通过这两个参数传入。
 
-已本地验证 Windows PowerShell 5.1 下的首次默认项、选择记忆、无效输入重试、中文/空格/# 目录、移动后的相对路径、参数传递、配置保留及临时 DPAPI 凭据；真实 Codex CLI 的 `features list` 可接受生成的配置和提示词覆盖参数。没有进行真实 API 请求或提示词效果评测，也不声称支持 macOS/Linux。
+`-Check` 不解析配置内容，也不尝试解密 Key 或连接 API；实际配置和服务端可用性需启动 CLI 后确认。
+
+## 迁移与升级
+
+### 更换工作目录（同设备、同账户）
+
+`codex-api.cmd` 始终以自身所在目录作为主工作目录。如需换到其他项目目录，**将 `codex-api.cmd` 与相邻的 `.codex-cli-launcher` 文件夹一起移动或复制过去即可**（单独复制 `.cmd` 无法运行）。
+
+### 更换电脑或 Windows 账户
+
+由于 `api-key.dpapi` 绑定当前 Windows 账户，无法跨设备或跨账户解密。请在新设备上从本仓库重新安装，并在首次启动时重新填写 API Key。
+
+### 升级已有安装
+
+安装脚本默认不会覆盖已有启动器。如需升级，建议先备份现有目录，再仅替换启动器脚本与 `prompts` 目录，保留你原有的 `config.toml`、`api-key.dpapi` 和 `last-prompt.txt`。
+
+## 常见问题
+
+**Q：为什么选了 GPT-6.1 Sol，但实际调用的还是原来的模型？**
+
+菜单中的名称仅表示提示词所适配的版本，不会切换模型。请在 Codex CLI 中输入 `/model` 选择服务端支持的模型，或在 `config.toml` 顶层显式配置 `model`。
+
+**Q：启动提示无法解密 API Key 怎么办？**
+
+通常是因为更换了电脑或切换了 Windows 账户。运行 `.\codex-api.cmd -ConfigureKey` 重新输入本机 Key 即可解决。
+
+**Q：支持 macOS 或 Linux 吗？**
+
+暂不支持。本启动器专为 Windows 环境（PowerShell 5.1+ 与 DPAPI）设计。
 
 ## 上游与许可
 
-提示词来自 [MDX-Tom/gpt-instruct](https://github.com/MDX-Tom/gpt-instruct)，固定提交 `79b9c1cfde30ca6d70ba8f76e9b23be38e4223a3`。发布包及原始提示词的 SHA256 记录在 [manifest.json](assets/runtime/cli-home/prompts/manifest.json)。启动器安装和运行前均校验提示词文件哈希；更新资产时需同步核对上游和更新 manifest。
-
-本仓库采用 [MIT License](LICENSE)，附带提示词保留 [上游 MIT 许可](assets/runtime/cli-home/prompts/LICENSE.gpt-instruct)。提示词资产是待加载的数据，不是安装 Skill 时需要执行的指令。
+- 提示词来源：[MDX-Tom/gpt-instruct](https://github.com/MDX-Tom/gpt-instruct)（固定提交 `79b9c1cfde30ca6d70ba8f76e9b23be38e4223a3`）。
+- 完整性校验：原始发布包与提示词文件的 SHA256 记录在 [manifest.json](assets/runtime/cli-home/prompts/manifest.json)。安装与启动时自动校验的是本地提示词文件；上游压缩包哈希供维护者更新资产时核对。
+- 开源协议：本仓库采用 [MIT License](LICENSE)，附带提示词保留 [上游 MIT 许可](assets/runtime/cli-home/prompts/LICENSE.gpt-instruct)。
