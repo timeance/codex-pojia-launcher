@@ -22,6 +22,7 @@ description: 在 Windows 上为 Codex CLI 安装或迁移带 gpt-instruct 提示
 
    - 脚本会创建 `codex-api.cmd` 和相邻的 `.codex-cli-launcher` 目录，并拒绝覆盖已有启动器。
    - 升级已有安装前须先备份并比对差异，仅替换启动器脚本与指定提示词，保留用户的 `config.toml`、`api-key.dpapi` 和 `last-prompt.txt`。
+   - 排查或迁移已有入口时，检查 CMD 调用链。若项目入口通过 `call` 调用其他目录的 CMD，内层的 `%~dp0` 可能覆盖工作目录；应由用户实际运行的入口 CMD 直接调用已有 `codex-api.ps1`，并传入 `-WorkingDirectory "%~dp0."`。参见 [旧版转发入口修复示例](README.md#修复旧版转发入口的工作目录)，保留原运行目录和其中的配置、凭据。
 
 3. **引导用户本地填写 Key 并启动**
    - 让用户在日常使用的 Windows 账户下双击 `codex-api.cmd`（或在终端运行）。
@@ -54,7 +55,9 @@ description: 在 Windows 上为 Codex CLI 安装或迁移带 gpt-instruct 提示
 交付或变更启动器时，重点验证以下项目（可使用隔离目录与模拟 CLI 验证参数，避免消耗真实 API 额度）：
 
 - 首次回车默认项、上次选择记忆、无效编号输入重试；
-- 包含中文、空格、`#` 的工作目录路径处理；
+- 从其他目录调用入口 CMD，使用 `-Preview` 确认 `cwd` 和传给 CLI 的 `-C` 参数均指向入口目录；路径末尾的 `\.` 与该目录等价；
+- 将入口 CMD 与相邻的 `.codex-cli-launcher` 整体移动或重命名到包含中文、空格、`#` 的目录，再次从其他目录运行上述检查；
+- 修复共享运行目录的旧入口时，移动入口 CMD 后复查：工作目录跟随入口，运行脚本仍从原位置加载；
 - `config.toml` 中的模型配置未被菜单改写；
 - 新环境无 Key 时的本地隐藏输入流程。
 

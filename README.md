@@ -122,6 +122,34 @@ requires_openai_auth = false
 
 `codex-api.cmd` 始终以自身所在目录作为主工作目录。如需换到其他项目目录，**将 `codex-api.cmd` 与相邻的 `.codex-cli-launcher` 文件夹一起移动或复制过去即可**（单独复制 `.cmd` 无法运行）。
 
+### 修复旧版转发入口的工作目录
+
+若项目目录里的 CMD 通过 `call` 调用另一个目录的 `codex-api.cmd`，内层 CMD 会按自己的 `%~dp0` 重新选择工作目录。即使外层已经执行 `cd /d "%~dp0"`，进入 Codex 后仍可能落到内层启动器的目录。
+
+先备份旧入口，并确认已有 `codex-api.ps1` 的实际位置。让入口直接调用该 PowerShell 脚本，将下面示例中的 `C:\Tools\CodexRuntime\codex-api.ps1` 替换为实际路径：
+
+```bat
+@echo off
+setlocal
+set "PSModulePath="
+cd /d "%~dp0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Tools\CodexRuntime\codex-api.ps1" -WorkingDirectory "%~dp0." %*
+set "codexExit=%errorlevel%"
+if not "%codexExit%"=="0" pause
+exit /b %codexExit%
+```
+
+这里的 `%~dp0` 来自用户实际运行的入口 CMD。已有运行目录及其配置、Key、选择记录保留原位；在本机移动入口 CMD 时，工作目录随入口变化。这种入口依赖指定的运行目录，跨设备迁移仍按下节重新安装。
+
+修复后，从其他目录运行预览，并在菜单中按回车：
+
+```powershell
+Set-Location $env:TEMP
+& 'D:\Projects\MyProject\codex-api.cmd' -Preview
+```
+
+将示例路径替换为实际入口。输出的 `cwd` 与 `arguments` 中 `-C` 后面的路径都应指向入口目录（末尾的 `\.` 与该目录等价）。移动或重命名入口后重复检查；标准安装须将相邻的 `.codex-cli-launcher` 一起移动。`-Preview` 不读取 Key，也不发起 API 请求。
+
 ### 更换电脑或 Windows 账户
 
 由于 `api-key.dpapi` 绑定当前 Windows 账户，无法跨设备或跨账户解密。请在新设备上从本仓库重新安装，并在首次启动时重新填写 API Key。
